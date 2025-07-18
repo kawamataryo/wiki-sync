@@ -2,11 +2,19 @@ import * as fs from 'node:fs/promises'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import * as core from '@actions/core'
-import { FileHandler } from './file-handler'
-import { GitHubClient } from './github-client'
-import { ErrorHandler, CircuitBreaker } from './error-handler'
-import { TransactionManager, PartialFailureHandler } from './transaction-manager'
-import type { ActionConfig, Change, MarkdownFile, SyncResult, WikiPage, FileState, PageState } from './types'
+import { CircuitBreaker, ErrorHandler } from './error-handler'
+import type { FileHandler } from './file-handler'
+import type { GitHubClient } from './github-client'
+import { PartialFailureHandler, TransactionManager } from './transaction-manager'
+import type {
+  ActionConfig,
+  Change,
+  FileState,
+  MarkdownFile,
+  PageState,
+  SyncResult,
+  WikiPage,
+} from './types'
 
 export class SyncEngine {
   private github: GitHubClient
@@ -42,7 +50,8 @@ export class SyncEngine {
       // 一時ディレクトリにWikiをクローン
       this.wikiPath = path.join(os.tmpdir(), `wiki-sync-${Date.now()}`)
       await ErrorHandler.retryWithBackoff(async () => {
-        await this.github.cloneWiki(this.wikiPath!)
+        if (!this.wikiPath) throw new Error('Wiki path not initialized')
+        await this.github.cloneWiki(this.wikiPath)
       })
       core.info(`Wiki cloned to: ${this.wikiPath}`)
 
@@ -64,7 +73,7 @@ export class SyncEngine {
           await this.circuitBreaker.execute(async () => {
             await this.applyChange(change)
           })
-          
+
           // 操作を記録
           await this.transactionManager.recordOperation({
             type: change.type,
@@ -72,30 +81,33 @@ export class SyncEngine {
             content: change.content,
             previousContent: change.oldContent,
           })
-          
+
           failureHandler.recordSuccess({
             type: change.type,
             path: change.filePath,
             content: change.content,
           })
-          
+
           result.changesApplied++
           core.info(`Applied change: ${change.type} ${change.filePath || change.wikiName}`)
         } catch (error) {
           ErrorHandler.logError(error, 'Apply change')
-          
+
           const errorContext = ErrorHandler.classify(error)
           result.errors.push({
             change,
             error: errorContext.message,
           })
-          
-          failureHandler.recordFailure({
-            type: change.type,
-            path: change.filePath,
-            content: change.content,
-          }, error)
-          
+
+          failureHandler.recordFailure(
+            {
+              type: change.type,
+              path: change.filePath,
+              content: change.content,
+            },
+            error,
+          )
+
           if (errorContext.fatal || !failureHandler.shouldContinue()) {
             throw new Error(`Fatal error or too many failures: ${errorContext.message}`)
           }
@@ -113,11 +125,12 @@ export class SyncEngine {
       // Wikiの変更をコミット＆プッシュ
       if (result.changesApplied > 0) {
         await ErrorHandler.retryWithBackoff(async () => {
+          if (!this.wikiPath) throw new Error('Wiki path not initialized')
           await this.github.commitWikiChanges(
-            this.wikiPath!,
+            this.wikiPath,
             `Sync from repository: ${result.changesApplied} changes`,
           )
-          await this.github.pushWikiChanges(this.wikiPath!)
+          await this.github.pushWikiChanges(this.wikiPath)
         })
         core.info('Wiki changes pushed successfully')
       }

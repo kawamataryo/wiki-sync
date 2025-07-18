@@ -92,7 +92,7 @@ export class FileHandler {
     sanitized = sanitized.replace(/[<>:"|?*]/g, '_')
 
     // 制御文字を削除
-    // biome-ignore lint/suspicious/noControlCharactersInRegex: <explanation>
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: Control characters need to be removed for file sanitization
     sanitized = sanitized.replace(/[\x00-\x1f\x80-\x9f]/g, '')
 
     // 先頭と末尾の空白を削除

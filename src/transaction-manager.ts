@@ -1,14 +1,8 @@
 import * as crypto from 'node:crypto'
 import * as core from '@actions/core'
-import type {
-  Checkpoint,
-  FileState,
-  PageState,
-  SyncOperation,
-  SyncTransaction,
-} from './types'
-import type { GitHubClient } from './github-client'
 import type { FileHandler } from './file-handler'
+import type { GitHubClient } from './github-client'
+import type { Checkpoint, FileState, PageState, SyncOperation, SyncTransaction } from './types'
 
 export class TransactionManager {
   private transaction: SyncTransaction | null = null
@@ -36,10 +30,7 @@ export class TransactionManager {
     return transactionId
   }
 
-  async createCheckpoint(
-    repoFiles: FileState[],
-    wikiFiles: PageState[],
-  ): Promise<Checkpoint> {
+  async createCheckpoint(repoFiles: FileState[], wikiFiles: PageState[]): Promise<Checkpoint> {
     if (!this.transaction) {
       throw new Error('No active transaction')
     }
@@ -143,9 +134,7 @@ export class TransactionManager {
     core.info('Restoring wiki state...')
 
     // Wiki状態の復元は複雑なため、警告のみ出力
-    core.warning(
-      'Wiki rollback is not fully implemented. Manual intervention may be required.',
-    )
+    core.warning('Wiki rollback is not fully implemented. Manual intervention may be required.')
 
     // 復元が必要なページをログ出力
     for (const page of wikiState) {
