@@ -19,13 +19,13 @@ export class ErrorHandler {
         [/conflict/i, ErrorType.CONFLICT],
     ]);
     static classify(error) {
-        const message = this.getErrorMessage(error);
-        const type = this.detectErrorType(error, message);
+        const message = ErrorHandler.getErrorMessage(error);
+        const type = ErrorHandler.detectErrorType(error, message);
         return {
             type,
             message,
             details: error,
-            ...this.getRecoveryStrategy(type),
+            ...ErrorHandler.getRecoveryStrategy(type),
         };
     }
     static getErrorMessage(error) {
@@ -59,7 +59,7 @@ export class ErrorHandler {
                 return ErrorType.NETWORK_ERROR;
         }
         // メッセージパターンによる分類
-        for (const [pattern, type] of this.ERROR_PATTERNS) {
+        for (const [pattern, type] of ErrorHandler.ERROR_PATTERNS) {
             if (pattern.test(message)) {
                 return type;
             }
@@ -86,11 +86,11 @@ export class ErrorHandler {
             }
             catch (error) {
                 lastError = error;
-                const errorContext = this.classify(error);
+                const errorContext = ErrorHandler.classify(error);
                 if (!errorContext.retryable || attempt === maxRetries) {
                     throw error;
                 }
-                const delay = Math.min(baseDelay * Math.pow(2, attempt - 1), 30000);
+                const delay = Math.min(baseDelay * 2 ** (attempt - 1), 30000);
                 core.warning(`Attempt ${attempt} failed: ${errorContext.message}. Retrying in ${delay}ms...`);
                 await new Promise((resolve) => setTimeout(resolve, delay));
             }
@@ -98,7 +98,7 @@ export class ErrorHandler {
         throw lastError;
     }
     static logError(error, context) {
-        const errorContext = this.classify(error);
+        const errorContext = ErrorHandler.classify(error);
         const prefix = context ? `[${context}] ` : '';
         core.error(`${prefix}${errorContext.message}`);
         if (error instanceof Error && error.stack) {

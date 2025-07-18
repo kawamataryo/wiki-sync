@@ -1,6 +1,6 @@
-import type { Checkpoint, FileState, PageState, SyncOperation } from './types';
-import type { GitHubClient } from './github-client';
 import type { FileHandler } from './file-handler';
+import type { GitHubClient } from './github-client';
+import type { Checkpoint, FileState, PageState, SyncOperation } from './types';
 export declare class TransactionManager {
     private github;
     private transaction;

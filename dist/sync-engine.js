@@ -2,8 +2,8 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import * as core from '@actions/core';
-import { ErrorHandler, CircuitBreaker } from './error-handler';
-import { TransactionManager, PartialFailureHandler } from './transaction-manager';
+import { CircuitBreaker, ErrorHandler } from './error-handler';
+import { PartialFailureHandler, TransactionManager } from './transaction-manager';
 export class SyncEngine {
     github;
     fileHandler;
@@ -33,6 +33,8 @@ export class SyncEngine {
             // 一時ディレクトリにWikiをクローン
             this.wikiPath = path.join(os.tmpdir(), `wiki-sync-${Date.now()}`);
             await ErrorHandler.retryWithBackoff(async () => {
+                if (!this.wikiPath)
+                    throw new Error('Wiki path not initialized');
                 await this.github.cloneWiki(this.wikiPath);
             });
             core.info(`Wiki cloned to: ${this.wikiPath}`);
@@ -91,6 +93,8 @@ export class SyncEngine {
             // Wikiの変更をコミット＆プッシュ
             if (result.changesApplied > 0) {
                 await ErrorHandler.retryWithBackoff(async () => {
+                    if (!this.wikiPath)
+                        throw new Error('Wiki path not initialized');
                     await this.github.commitWikiChanges(this.wikiPath, `Sync from repository: ${result.changesApplied} changes`);
                     await this.github.pushWikiChanges(this.wikiPath);
                 });

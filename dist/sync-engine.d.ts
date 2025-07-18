@@ -1,5 +1,5 @@
-import { FileHandler } from './file-handler';
-import { GitHubClient } from './github-client';
+import type { FileHandler } from './file-handler';
+import type { GitHubClient } from './github-client';
 import type { ActionConfig, Change, SyncResult } from './types';
 export declare class SyncEngine {
     private github;

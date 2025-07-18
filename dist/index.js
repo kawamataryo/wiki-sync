@@ -33413,7 +33413,7 @@ class FileHandler {
         // Windowsで無効な文字を置換
         sanitized = sanitized.replace(/[<>:"|?*]/g, '_');
         // 制御文字を削除
-        // biome-ignore lint/suspicious/noControlCharactersInRegex: <explanation>
+        // biome-ignore lint/suspicious/noControlCharactersInRegex: Control characters need to be removed for file sanitization
         sanitized = sanitized.replace(/[\x00-\x1f\x80-\x9f]/g, '');
         // 先頭と末尾の空白を削除
         sanitized = sanitized.trim();
@@ -38429,13 +38429,13 @@ class ErrorHandler {
         [/conflict/i, ErrorType.CONFLICT],
     ]);
     static classify(error) {
-        const message = this.getErrorMessage(error);
-        const type = this.detectErrorType(error, message);
+        const message = ErrorHandler.getErrorMessage(error);
+        const type = ErrorHandler.detectErrorType(error, message);
         return {
             type,
             message,
             details: error,
-            ...this.getRecoveryStrategy(type),
+            ...ErrorHandler.getRecoveryStrategy(type),
         };
     }
     static getErrorMessage(error) {
@@ -38469,7 +38469,7 @@ class ErrorHandler {
                 return ErrorType.NETWORK_ERROR;
         }
         // メッセージパターンによる分類
-        for (const [pattern, type] of this.ERROR_PATTERNS) {
+        for (const [pattern, type] of ErrorHandler.ERROR_PATTERNS) {
             if (pattern.test(message)) {
                 return type;
             }
@@ -38496,11 +38496,11 @@ class ErrorHandler {
             }
             catch (error) {
                 lastError = error;
-                const errorContext = this.classify(error);
+                const errorContext = ErrorHandler.classify(error);
                 if (!errorContext.retryable || attempt === maxRetries) {
                     throw error;
                 }
-                const delay = Math.min(baseDelay * Math.pow(2, attempt - 1), 30000);
+                const delay = Math.min(baseDelay * 2 ** (attempt - 1), 30000);
                 core.warning(`Attempt ${attempt} failed: ${errorContext.message}. Retrying in ${delay}ms...`);
                 await new Promise((resolve) => setTimeout(resolve, delay));
             }
@@ -38508,7 +38508,7 @@ class ErrorHandler {
         throw lastError;
     }
     static logError(error, context) {
-        const errorContext = this.classify(error);
+        const errorContext = ErrorHandler.classify(error);
         const prefix = context ? `[${context}] ` : '';
         core.error(`${prefix}${errorContext.message}`);
         if (error instanceof Error && error.stack) {
@@ -38767,6 +38767,8 @@ class SyncEngine {
             // 一時ディレクトリにWikiをクローン
             this.wikiPath = external_node_path_namespaceObject.join(external_node_os_namespaceObject.tmpdir(), `wiki-sync-${Date.now()}`);
             await ErrorHandler.retryWithBackoff(async () => {
+                if (!this.wikiPath)
+                    throw new Error('Wiki path not initialized');
                 await this.github.cloneWiki(this.wikiPath);
             });
             core.info(`Wiki cloned to: ${this.wikiPath}`);
@@ -38825,6 +38827,8 @@ class SyncEngine {
             // Wikiの変更をコミット＆プッシュ
             if (result.changesApplied > 0) {
                 await ErrorHandler.retryWithBackoff(async () => {
+                    if (!this.wikiPath)
+                        throw new Error('Wiki path not initialized');
                     await this.github.commitWikiChanges(this.wikiPath, `Sync from repository: ${result.changesApplied} changes`);
                     await this.github.pushWikiChanges(this.wikiPath);
                 });
