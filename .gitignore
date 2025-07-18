@@ -7,7 +7,7 @@ pnpm-debug.log*
 .pnpm-store/
 
 # Build outputs
-dist/
+# dist/ is intentionally committed for GitHub Actions
 *.tsbuildinfo
 out/
 build/

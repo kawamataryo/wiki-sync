@@ -1,6 +1,6 @@
 name: 'GitHub Wiki Sync'
-description: 'Synchronize repository folder with GitHub wiki bidirectionally'
-author: 'Your Name'
+description: 'Synchronize your repository documentation folder with GitHub Wiki bidirectionally. Keep your docs in sync effortlessly!'
+author: 'kawamataryo'
 branding:
   icon: 'refresh-cw'
   color: 'blue'
